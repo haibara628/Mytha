@@ -1,0 +1,302 @@
+:root {
+  --bg: #f7f5f1;
+  --panel: #ffffff;
+  --border: #e4e0d8;
+  --text: #2b2a28;
+  --muted: #8a867e;
+  --accent: #7c5cbf;
+  --accent-dark: #5f449c;
+  --danger: #c0392b;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC',
+    'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+  color: var(--text);
+  background: var(--bg);
+  font-size: 14px;
+}
+
+.app {
+  display: grid;
+  grid-template-columns: 240px 1fr 340px;
+  height: 100%;
+}
+
+/* ---- 左栏 ---- */
+.sidebar {
+  background: var(--panel);
+  border-right: 1px solid var(--border);
+  overflow-y: auto;
+  padding: 12px;
+}
+
+.new-btn {
+  width: 100%;
+  padding: 8px;
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  margin-bottom: 14px;
+}
+.new-btn:hover {
+  background: var(--accent-dark);
+}
+
+.section-title {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--muted);
+  margin: 12px 0 6px;
+}
+
+.proj-list,
+.tree {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+.proj-list li,
+.tree li {
+  padding: 5px 8px;
+  border-radius: 5px;
+  cursor: pointer;
+}
+.proj-list li:hover,
+.tree li:hover {
+  background: #f0ede6;
+}
+.proj-list li.active,
+.tree li.active {
+  background: #ece6f7;
+  color: var(--accent-dark);
+  font-weight: 600;
+}
+.tree li.group {
+  color: var(--muted);
+  font-size: 12px;
+  cursor: default;
+  margin-top: 6px;
+}
+
+/* ---- 中栏 ---- */
+.center {
+  background: var(--panel);
+  overflow-y: auto;
+  padding: 20px 28px;
+}
+.center .empty {
+  color: var(--muted);
+  margin-top: 40px;
+  text-align: center;
+}
+
+.editor h2 {
+  margin-top: 0;
+  font-size: 20px;
+}
+.editor .field {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 14px;
+}
+.field-label {
+  font-size: 12px;
+  color: var(--muted);
+  margin-bottom: 4px;
+}
+.editor input,
+.editor textarea,
+.create-form input,
+.create-form textarea,
+.project-wizard input,
+.project-wizard textarea {
+  padding: 7px 9px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-size: 14px;
+  font-family: inherit;
+  background: #fff;
+}
+.editor textarea,
+.create-form textarea,
+.project-wizard textarea {
+  resize: vertical;
+}
+
+button.primary {
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  padding: 9px 14px;
+  cursor: pointer;
+  font-size: 14px;
+}
+button.primary:hover {
+  background: var(--accent-dark);
+}
+button.primary:disabled {
+  background: #c7c1d4;
+  cursor: not-allowed;
+}
+button {
+  background: #eeeae2;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 6px 12px;
+  cursor: pointer;
+  font-size: 13px;
+}
+button:hover {
+  background: #e6e1d7;
+}
+
+.card-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.card {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 14px;
+  background: #fff;
+}
+.card h3 {
+  margin: 0 0 6px;
+}
+.muted {
+  color: var(--muted);
+}
+
+/* ---- 右栏 ---- */
+.right {
+  background: var(--panel);
+  border-left: 1px solid var(--border);
+  overflow-y: auto;
+  padding: 16px;
+}
+.wizard h2 {
+  margin-top: 0;
+  font-size: 16px;
+}
+.wizard .field,
+.create-form .field,
+.project-wizard .field {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 12px;
+}
+.wizard button,
+.project-wizard button,
+.create-form button {
+  margin: 4px 0;
+  width: 100%;
+}
+.wizard button.primary,
+.project-wizard button.primary,
+.create-form button.primary {
+  margin-top: 8px;
+}
+.step-note {
+  color: var(--muted);
+  font-size: 12px;
+  margin-bottom: 10px;
+}
+.busy {
+  color: var(--accent-dark);
+  margin-top: 8px;
+  font-size: 13px;
+}
+.log {
+  margin-top: 12px;
+  font-size: 12px;
+  color: var(--muted);
+  border-top: 1px dashed var(--border);
+  padding-top: 8px;
+  max-height: 160px;
+  overflow-y: auto;
+}
+.log div {
+  margin-bottom: 3px;
+}
+
+.seeds-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin: 8px 0 6px;
+  font-size: 12px;
+  color: var(--muted);
+}
+.seeds-header button {
+  width: auto;
+  padding: 3px 8px;
+  font-size: 12px;
+}
+.seed-card {
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 8px;
+  margin-bottom: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.seed-card button {
+  align-self: flex-end;
+  width: auto;
+  color: var(--danger);
+}
+
+.project-wizard select,
+.create-form select {
+  padding: 7px 9px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-size: 14px;
+  font-family: inherit;
+  background: #fff;
+  width: 100%;
+}
+
+.scene-item {
+  border-left: 2px solid var(--border);
+  padding-left: 10px;
+  margin: 8px 0;
+}
+
+.prose {
+  white-space: pre-wrap;
+  font-family: inherit;
+  font-size: 14px;
+  line-height: 1.6;
+  margin: 8px 0;
+}
+
+.finding-error {
+  color: var(--danger);
+  margin: 4px 0;
+  font-size: 13px;
+}
+.finding-warn {
+  color: #b8860b;
+  margin: 4px 0;
+  font-size: 13px;
+}
