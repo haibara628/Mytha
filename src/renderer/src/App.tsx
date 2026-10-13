@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import type { Bible, Framework, Project, Seed } from '../../core/model/types'
-import type { LoadedProject, ProjectSummary } from '../../shared/ipc'
+import type { ImpactResult, LoadedProject, ProjectSummary } from '../../shared/ipc'
 import { Sidebar } from './components/Sidebar'
 import { Wizard } from './components/Wizard'
 import { EditorPane, type Selection } from './components/EditorPane'
@@ -12,6 +12,7 @@ export default function App() {
   const [busy, setBusy] = useState(false)
   const [log, setLog] = useState<string[]>([])
   const [revision, setRevision] = useState(0)
+  const [impact, setImpact] = useState<ImpactResult | null>(null)
 
   const refreshProjects = useCallback(async () => {
     setProjects(await window.api.listProjects())
@@ -108,8 +109,33 @@ export default function App() {
   const saveBible = useCallback(
     async (bible: Bible) => {
       if (!current) return
+      const prev = current.bible
       await window.api.saveBible(current.project.slug, bible)
+      const nextImpact = prev
+        ? await window.api.analyzeImpact(current.project.slug, prev, bible)
+        : null
+      setImpact(nextImpact)
       setCurrent({ ...current, bible })
+    },
+    [current]
+  )
+
+  const rewriteChapters = useCallback(
+    async (chapterIds: string[]) => {
+      if (!current || chapterIds.length === 0) return
+      setBusy(true)
+      setLog((l) => [...l, `重写 ${chapterIds.length} 章正文中…`])
+      try {
+        const res = await window.api.runChapters(current.project.slug, chapterIds)
+        setCurrent((c) => (c ? { ...c, bible: res.bible } : c))
+        setRevision((r) => r + 1)
+        setImpact(null)
+        setLog((l) => [...l, '受影响章节已重写。'])
+      } catch (err) {
+        setLog((l) => [...l, '错误：' + (err as Error).message])
+      } finally {
+        setBusy(false)
+      }
     },
     [current]
   )
@@ -151,9 +177,11 @@ export default function App() {
           current={current}
           selection={selection}
           revision={revision}
+          impact={impact}
           onSaveBible={saveBible}
           onSaveFramework={saveFramework}
           onSaveSeed={saveSeed}
+          onRewrite={rewriteChapters}
         />
       </main>
       <aside className="right">

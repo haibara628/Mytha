@@ -1,11 +1,13 @@
 import type {
   Bible,
   ChapterGeneration,
+  Finding,
   Framework,
   Outline,
   Seed
 } from '../model/types'
 import type { ChapterContext } from '../context/assembler'
+import type { SemanticReviewInput } from '../review/semantic'
 
 /**
  * 模型接入抽象。M0 只实现 MockProvider；
@@ -24,4 +26,6 @@ export interface LLMProvider {
   outlineFromFramework(bible: Bible, framework: Framework): Promise<Outline>
   /** 阶段3：章节正文 —— 由组装好的上下文生成场景正文、摘要与状态变更 */
   generateChapter(context: ChapterContext): Promise<ChapterGeneration>
+  /** 语义校验（LLM-as-judge）：对比新正文 vs 圣经 + 前情摘要，产出语义矛盾清单 */
+  reviewChapter(input: SemanticReviewInput): Promise<Finding[]>
 }

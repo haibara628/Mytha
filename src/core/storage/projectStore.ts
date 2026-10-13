@@ -231,6 +231,25 @@ export class ProjectStore {
     }
   }
 
+  async loadManuscripts(project: Project): Promise<ChapterManuscript[]> {
+    const dir = path.join(project.path, 'manuscript')
+    try {
+      const files = (await readdir(dir)).filter((f) => f.endsWith('.json')).sort()
+      const out: ChapterManuscript[] = []
+      for (const f of files) {
+        try {
+          const raw = await readFile(path.join(dir, f), 'utf-8')
+          out.push(ChapterManuscriptSchema.parse(JSON.parse(raw)))
+        } catch {
+          // 跳过解析失败的正文
+        }
+      }
+      return out
+    } catch {
+      return []
+    }
+  }
+
   // ---- 摘要（分层摘要链） ----
   async writeChapterSummaries(project: Project, summaries: ChapterSummary[]): Promise<void> {
     const dir = path.join(project.path, 'summaries')

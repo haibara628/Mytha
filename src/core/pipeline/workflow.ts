@@ -80,8 +80,16 @@ export class Workflow {
 
     const gen = ChapterGenerationSchema.parse(await this.provider.generateChapter(context))
 
-    // 一致性校验（回写前，产出矛盾清单）
-    const findings = checkChapterConsistency({ chapter, generation: gen, bibleBefore: bible })
+    // 一致性校验（回写前，产出矛盾清单）：结构化规则 + 语义级 LLM-as-judge
+    const structural = checkChapterConsistency({ chapter, generation: gen, bibleBefore: bible })
+    const semantic = await this.provider.reviewChapter({
+      bible,
+      chapter,
+      generation: gen,
+      previousChapterSummary,
+      bookSummary: bookSummary?.summary ?? ''
+    })
+    const findings = [...structural, ...semantic]
 
     // 状态快照回写（人物 dynamic + 关系 + 伏笔 status）
     const nextBible = applyChapterStateChanges(bible, gen.stateChanges)

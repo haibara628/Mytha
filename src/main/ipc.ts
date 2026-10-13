@@ -3,6 +3,7 @@ import path from 'node:path'
 import { ProjectStore } from '../core/storage/projectStore'
 import { getProvider } from '../core/llm'
 import { Workflow } from '../core/pipeline/workflow'
+import { findAffectedScenes } from '../core/reference/impact'
 import { IPC } from '../shared/ipc'
 import type { CreateProjectInput, LoadedProject } from '../shared/ipc'
 import type { Bible, Framework, Project } from '../core/model/types'
@@ -49,6 +50,26 @@ export function registerIpc(): void {
   ipcMain.handle(IPC.runChapter, async (_e, slug: string, chapterId: string) => {
     const project = await store.loadProject(slug)
     return workflow.runChapter(project, chapterId)
+  })
+
+  ipcMain.handle(IPC.runChapters, async (_e, slug: string, chapterIds: string[]) => {
+    const project = await store.loadProject(slug)
+    const results = []
+    let bible: Bible | null = null
+    for (const id of chapterIds) {
+      const r = await workflow.runChapter(project, id)
+      results.push(r)
+      bible = r.bible
+    }
+    return { results, bible }
+  })
+
+  ipcMain.handle(IPC.analyzeImpact, async (_e, slug: string, oldBible: Bible, newBible: Bible) => {
+    const project = await store.loadProject(slug)
+    const outline = await store.loadOutline(project)
+    if (!outline) return { affectedScenes: [] }
+    const manuscripts = await store.loadManuscripts(project)
+    return { affectedScenes: findAffectedScenes({ oldBible, newBible, outline, manuscripts }) }
   })
 
   ipcMain.handle(IPC.loadChapter, async (_e, slug: string, chapterId: string) => {

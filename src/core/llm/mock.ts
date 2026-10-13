@@ -4,8 +4,9 @@ import {
   FrameworkSchema,
   OutlineSchema
 } from '../model/schemas'
-import type { Bible, ChapterGeneration, Framework, Outline, Seed } from '../model/types'
+import type { Bible, ChapterGeneration, Finding, Framework, Outline, Seed } from '../model/types'
 import type { ChapterContext } from '../context/assembler'
+import type { SemanticReviewInput } from '../review/semantic'
 import {
   buildBibleFromSeed,
   buildChapterGeneration,
@@ -32,5 +33,9 @@ export class MockProvider implements LLMProvider {
 
   async generateChapter(context: ChapterContext): Promise<ChapterGeneration> {
     return ChapterGenerationSchema.parse(buildChapterGeneration(context))
+  }
+
+  async reviewChapter(_input: SemanticReviewInput): Promise<Finding[]> {
+    return []
   }
 }

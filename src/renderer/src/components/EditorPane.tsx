@@ -14,7 +14,7 @@ import type {
   StyleCard,
   World
 } from '../../../core/model/types'
-import type { CommitEntry, LoadedProject } from '../../../shared/ipc'
+import type { CommitEntry, ImpactResult, LoadedProject } from '../../../shared/ipc'
 import { ListField, TextArea, TextField } from './fields'
 
 export type Selection =
@@ -34,18 +34,22 @@ interface Props {
   current: LoadedProject | null
   selection: Selection
   revision: number
+  impact: ImpactResult | null
   onSaveBible(b: Bible): void
   onSaveFramework(f: Framework): void
   onSaveSeed(s: Seed): void
+  onRewrite(chapterIds: string[]): void
 }
 
 export function EditorPane({
   current,
   selection,
   revision,
+  impact,
   onSaveBible,
   onSaveFramework,
-  onSaveSeed
+  onSaveSeed,
+  onRewrite
 }: Props) {
   if (!current) {
     return <div className="empty">选择左侧项目，或点击「新建项目」开始。</div>
@@ -78,7 +82,14 @@ export function EditorPane({
     case 'plotThreads':
       return bible ? <PlotThreadsView threads={bible.plotThreads} /> : <EmptyHint />
     case 'glossary':
-      return bible ? <GlossaryView entries={bible.glossary} /> : <EmptyHint />
+      return bible ? (
+        <GlossaryEditor
+          entries={bible.glossary}
+          onSave={(entries) => onSaveBible({ ...bible, glossary: entries })}
+        />
+      ) : (
+        <EmptyHint />
+      )
     case 'style':
       return bible ? (
         <StyleEditor style={bible.style} onSave={(s) => onSaveBible({ ...bible, style: s })} />
@@ -90,7 +101,11 @@ export function EditorPane({
     case 'arcs':
       return framework ? <ArcsView arcs={framework.arcs} /> : <EmptyHint />
     case 'outline':
-      return outline ? <OutlineView outline={outline} bible={bible} /> : <EmptyHint />
+      return outline ? (
+        <OutlineView outline={outline} bible={bible} impact={impact} onRewrite={onRewrite} />
+      ) : (
+        <EmptyHint />
+      )
     case 'chapter':
       return outline ? (
         <ChapterView
@@ -99,6 +114,8 @@ export function EditorPane({
           outline={outline}
           bible={bible}
           revision={revision}
+          impact={impact}
+          onRewrite={onRewrite}
         />
       ) : (
         <EmptyHint />
@@ -292,19 +309,47 @@ function PlotThreadsView({ threads }: { threads: PlotThread[] }) {
 }
 
 // ---- 名词表 ----
-function GlossaryView({ entries }: { entries: GlossaryEntry[] }) {
+function GlossaryEditor({
+  entries,
+  onSave
+}: {
+  entries: GlossaryEntry[]
+  onSave(entries: GlossaryEntry[]): void
+}) {
+  const [draft, setDraft] = useState<GlossaryEntry[]>(entries)
+  useEffect(() => setDraft(entries), [entries])
+  const update = (i: number, patch: Partial<GlossaryEntry>) =>
+    setDraft(draft.map((g, idx) => (idx === i ? { ...g, ...patch } : g)))
+  const add = () => setDraft([...draft, { term: '', definition: '', category: '设定' }])
+  const remove = (i: number) => setDraft(draft.filter((_, idx) => idx !== i))
+
   return (
     <div className="editor">
       <h2>专有名词表</h2>
+      <div className="muted" style={{ marginBottom: 10 }}>
+        修改词条（含改名）并保存后，会反查并标红受影响的场景。
+      </div>
       <div className="card-list">
-        {entries.map((g, i) => (
+        {draft.map((g, i) => (
           <div key={i} className="card">
-            <h3>
-              {g.term} <span className="muted">[{g.category}]</span>
-            </h3>
-            <div>{g.definition}</div>
+            <TextField label="词条" value={g.term} onChange={(v) => update(i, { term: v })} />
+            <TextField label="分类" value={g.category} onChange={(v) => update(i, { category: v })} />
+            <TextArea label="定义" value={g.definition} rows={2} onChange={(v) => update(i, { definition: v })} />
+            <button onClick={() => remove(i)} style={{ color: 'var(--danger)' }}>
+              删除词条
+            </button>
           </div>
         ))}
+      </div>
+      <div style={{ marginTop: 12 }}>
+        <button onClick={add}>＋ 添加词条</button>
+        <button
+          className="primary"
+          style={{ marginLeft: 8 }}
+          onClick={() => onSave(draft.filter((g) => g.term.trim()))}
+        >
+          保存名词表
+        </button>
       </div>
     </div>
   )
@@ -393,30 +438,61 @@ function HistoryView({ slug }: { slug: string }) {
 }
 
 // ---- 提纲 ----
-function OutlineView({ outline, bible }: { outline: Outline; bible: Bible | null }) {
+function OutlineView({
+  outline,
+  bible,
+  impact,
+  onRewrite
+}: {
+  outline: Outline
+  bible: Bible | null
+  impact: ImpactResult | null
+  onRewrite(chapterIds: string[]): void
+}) {
   const charName = (id: string) => bible?.characters.find((c) => c.id === id)?.name ?? id
   const threadTitle = (id: string) => bible?.plotThreads.find((t) => t.id === id)?.title ?? id
+  const affectedByScene = new Map((impact?.affectedScenes ?? []).map((a) => [a.sceneId, a]))
+  const affectedChapterIds = [...new Set((impact?.affectedScenes ?? []).map((a) => a.chapterId))]
   return (
     <div className="editor">
       <h2>提纲（{outline.chapters.length} 章）</h2>
+      {affectedChapterIds.length > 0 && (
+        <div className="affected-banner">
+          <span>
+            有 {affectedByScene.size} 个场景受设定变更影响。
+          </span>
+          <button className="primary" onClick={() => onRewrite(affectedChapterIds)}>
+            重写受影响章节（{affectedChapterIds.length}）
+          </button>
+        </div>
+      )}
       <div className="card-list">
         {outline.chapters.map((ch) => (
           <div key={ch.id} className="card">
             <h3>{ch.title}</h3>
             <div className="muted">{ch.goal}</div>
             <div>{ch.summary}</div>
-            {ch.scenes.map((sc) => (
-              <div key={sc.id} className="scene-item">
-                <div>
-                  <b>场 {sc.index}</b> · {sc.goal}
+            {ch.scenes.map((sc) => {
+              const aff = affectedByScene.get(sc.id)
+              return (
+                <div key={sc.id} className={aff ? 'scene-item affected' : 'scene-item'}>
+                  <div>
+                    <b>场 {sc.index}</b> · {sc.goal}
+                    {aff && (
+                      <span className="affected-badge" title={aff.reasons.join('；')}>
+                        受影响
+                      </span>
+                    )}
+                  </div>
+                  <div className="muted">冲突：{sc.conflict}｜转折：{sc.turningPoint}</div>
+                  <div className="muted">
+                    出场：{sc.characterIds.map(charName).join('、') || '无'} ｜ 伏笔：
+                    {sc.plotThreadIds.map(threadTitle).join('、') || '无'}
+                  </div>
+                  {aff && <div className="muted">原因：{aff.reasons.join('；')}</div>}
                 </div>
-                <div className="muted">冲突：{sc.conflict}｜转折：{sc.turningPoint}</div>
-                <div className="muted">
-                  出场：{sc.characterIds.map(charName).join('、') || '无'} ｜ 伏笔：
-                  {sc.plotThreadIds.map(threadTitle).join('、') || '无'}
-                </div>
-              </div>
-            ))}
+              )
+            })}
           </div>
         ))}
       </div>
@@ -430,13 +506,17 @@ function ChapterView({
   chapterId,
   outline,
   bible,
-  revision
+  revision,
+  impact,
+  onRewrite
 }: {
   slug: string
   chapterId: string
   outline: Outline
   bible: Bible | null
   revision: number
+  impact: ImpactResult | null
+  onRewrite(chapterIds: string[]): void
 }) {
   const chapter = outline.chapters.find((c) => c.id === chapterId)
   const [ms, setMs] = useState<ChapterManuscript | null>(null)
@@ -449,11 +529,21 @@ function ChapterView({
   const sceneIndex = (id: string) => chapter.scenes.find((c) => c.id === id)?.index ?? '?'
   const charName = (id: string) => bible?.characters.find((c) => c.id === id)?.name ?? id
   const threadTitle = (id: string) => bible?.plotThreads.find((t) => t.id === id)?.title ?? id
+  const affectedScenes = (impact?.affectedScenes ?? []).filter((a) => a.chapterId === chapterId)
 
   return (
     <div className="editor">
       <h2>{chapter.title}</h2>
       <div className="muted">目标：{chapter.goal}</div>
+
+      {affectedScenes.length > 0 && (
+        <div className="affected-banner" style={{ marginTop: 12 }}>
+          <span>本章有 {affectedScenes.length} 个场景受设定变更影响。</span>
+          <button className="primary" onClick={() => onRewrite([chapterId])}>
+            重写本章
+          </button>
+        </div>
+      )}
 
       {ms ? (
         <>
@@ -497,6 +587,7 @@ function ChapterView({
               ms.findings.map((f, i) => (
                 <div key={i} className={f.severity === 'error' ? 'finding-error' : 'finding-warn'}>
                   [{f.severity}] {f.rule}：{f.message}
+                  {f.rule.startsWith('语义') && <span className="muted">（语义）</span>}
                 </div>
               ))
             )}

@@ -6,6 +6,8 @@
   "license": "MIT",
   "scripts": {
     "dev": "electron-vite dev",
+    "dev:local": "MYTHA_LLM_PROVIDER=ollama electron-vite dev",
+    "demo:local": "MYTHA_LLM_PROVIDER=ollama npx vite-node scripts/demo.ts",
     "build": "electron-vite build",
     "preview": "electron-vite preview",
     "typecheck": "tsc --noEmit",

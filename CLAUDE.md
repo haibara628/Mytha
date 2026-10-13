@@ -115,7 +115,7 @@ summaries/book.json                # 全书主线摘要
 
 ---
 
-## 五、当前状态（M0 + M1 + M2 已完成，2026-10-09）
+## 五、当前状态（M0 + M1 + M2 已完成；M3 部分完成，2026-10-11）
 
 **M0（地基）**：工程骨架、故事圣经数据模型、文件系统存储 + git 版本化、MockProvider、pipeline（world/framework）、三栏 UI。
 
@@ -129,10 +129,14 @@ summaries/book.json                # 全书主线摘要
 
 **验证**：**测试 15/15 通过**、`typecheck` 通过、`build` 通过、端到端 demo（上下文注入「承接上章」+ 关系回写 + 一致性校验 + 12 次 git 提交）通过。
 
-**M2 尚未做（诚实标注）**：
-- 语义级 LLM-as-judge 校验未实现（当前仅确定性结构化规则；真实模型接入后补充）。
-- 检索是关键词匹配，非向量检索（当前圣经体量下够用）。
-- 正文仍是结构化标记（真实文笔需 M3 真实模型）。
+**M3 已落地（2026-10-11）**：
+- ✅ **引用图 + 影响传播**（`core/reference/impact.ts`）：`diffBible` 找变更实体（专名/人物设定/文风/世界观），`findAffectedScenes` 反查受影响场景；`saveBible` 后自动分析，提纲/章节视图标红 + 一键重写（复用 `runChapter`，`runChapters` IPC）。
+- ✅ **LLM-as-judge 语义校验**（`core/review/semantic.ts` + `LLMProvider.reviewChapter`）：生成本地 qwen 当 judge，对比新正文 vs 圣经 + 前情摘要，产出语义矛盾（时间线/地点/道具/设定/人物/文风），与结构化 findings 合并落盘；`rule` 用「语义·」前缀区分，`MYTHA_SEMANTIC_REVIEW=0` 可关。
+
+**尚未做（诚实标注）**：
+- 检索仍是关键词匹配，非向量检索（当前圣经体量下够用）。
+- 语义校验用的是本地 qwen 当 judge（非专门的更强模型）；框架变更未级联重写（需手动重跑提纲）；重写复用 `runChapter`（状态回写近似幂等，精确回滚靠 git revert）。
+- Anthropic 真实 API provider 未实现（当前走本地 Ollama，见下）。
 
 **运行命令**：
 - `npm test` — 核心引擎单测（无 GUI，无需 electron 二进制）
@@ -140,14 +144,23 @@ summaries/book.json                # 全书主线摘要
 - `npm run typecheck` / `npm run build` — 类型检查 / 构建
 - `npm install && npm run dev` — 完整安装（含 electron 二进制）后启动 GUI
 
+**本地模型（Ollama，RTX 4080）**：
+- 依赖本机 Ollama（`http://localhost:11434`）；`ollama pull qwen2.5:14b` 拉取默认模型（Q4_K_M，约 9GB）。
+- 环境变量：`MYTHA_LLM_PROVIDER=ollama`（显式开启）、`MYTHA_LLM_MODEL`（默认 `qwen2.5:14b`）、`MYTHA_LLM_BASE_URL`（默认 `http://localhost:11434`）。
+- 运行：`npm run dev:local`（GUI）、`npm run demo:local`（无 GUI 端到端演示）。
+- 未设置 `MYTHA_LLM_PROVIDER` 时回落 `MockProvider`（确定性，供测试）。真实 provider 经 `getProvider()` 的 env 默认自动接入，IPC/renderer 无需改动。
+- 实现：`src/core/llm/local.ts`（`OllamaProvider`，`format:"json"` + zod 校验 + 报错重试）+ `src/core/llm/prompts.ts`（prompt 模板，字段结构由 zod schema 经 `describeSchema` 自动生成）。
+
 ---
 
 ## 六、待办路线图
 
-### M3 — 追溯传播 + 语义校验 + 真实模型（下一步）
-- **引用图 + 影响传播**：场景记录引用的设定 ID，改设定 → 反查受影响场景 → 标红 → 局部重写；按修改层级（专名/人物设定/框架/文风）决定重写范围。
-- **LLM-as-judge 语义校验**：真实模型接入后，对比新正文 vs 圣经 + 前情摘要，产出语义级矛盾清单（时间线/地点/道具/设定违反）。
-- **接入 Anthropic provider**：实现 `LLMProvider` 真实实现（结构化输出 + prompt 模板），工厂按 `ANTHROPIC_API_KEY` 切换；正文改为真实文笔。
+### M3 — 追溯传播 + 语义校验 + 真实模型
+- ✅ **引用图 + 影响传播**（专名/人物设定/文风/世界观层级）——`core/reference/impact.ts`；UI 标红 + 一键重写。
+- ✅ **LLM-as-judge 语义校验**——`core/review/semantic.ts` + `LLMProvider.reviewChapter`，本地 qwen 当 judge。
+- ⏳ **框架变更级联重写**（当前框架改动需手动重跑提纲）。
+- ⏳ **重写时的状态回滚**（当前复用 `runChapter`，近似幂等）。
+- ⏳ **接入 Anthropic provider**：工厂按 `ANTHROPIC_API_KEY` 切换（当前走本地 Ollama）。
 - （可选）向量检索替代关键词检索；正文编辑器（CodeMirror）。
 
 ---

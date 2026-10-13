@@ -11,9 +11,12 @@ const api: Api = {
   runFramework: (slug) => ipcRenderer.invoke(IPC.runFramework, slug),
   runOutline: (slug) => ipcRenderer.invoke(IPC.runOutline, slug),
   runChapter: (slug, chapterId) => ipcRenderer.invoke(IPC.runChapter, slug, chapterId),
+  runChapters: (slug, chapterIds) => ipcRenderer.invoke(IPC.runChapters, slug, chapterIds),
   loadChapter: (slug, chapterId) => ipcRenderer.invoke(IPC.loadChapter, slug, chapterId),
   saveBible: (slug, bible) => ipcRenderer.invoke(IPC.saveBible, slug, bible),
   saveFramework: (slug, framework) => ipcRenderer.invoke(IPC.saveFramework, slug, framework),
+  analyzeImpact: (slug, oldBible, newBible) =>
+    ipcRenderer.invoke(IPC.analyzeImpact, slug, oldBible, newBible),
   history: (slug) => ipcRenderer.invoke(IPC.history, slug)
 }
 
